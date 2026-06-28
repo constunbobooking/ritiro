@@ -34,6 +34,34 @@
 .btn-camera{background:var(--blue);color:var(--white);}
 .btn-camera:hover{background:#1557b0;}
 .btn-stop{background:#555;color:var(--white);}
+
+/* Login screen */
+.login-screen{position:fixed;top:0;left:0;right:0;bottom:0;
+  background:var(--red);z-index:9999;
+  display:flex;flex-direction:column;
+  justify-content:center;align-items:center;padding:30px;}
+.login-screen.hidden{display:none;}
+.login-logo{width:100px;height:100px;border-radius:12px;
+  background:white;padding:6px;margin-bottom:20px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.3);}
+.login-title{color:white;font-size:20px;font-weight:700;
+  text-align:center;margin-bottom:4px;}
+.login-sub{color:rgba(255,255,255,0.8);font-size:13px;
+  text-align:center;margin-bottom:30px;}
+.login-box{background:white;border-radius:var(--radius);
+  padding:24px;width:100%;max-width:320px;}
+.login-box label{display:block;font-size:13px;color:var(--gray);
+  margin-bottom:6px;text-align:center;}
+.login-box input{width:100%;font-size:18px;padding:12px;
+  border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  text-align:center;letter-spacing:6px;margin-bottom:12px;
+  font-family:var(--mono);}
+.login-box input:focus{outline:none;border-color:var(--red);}
+.login-err{color:var(--red);font-size:13px;text-align:center;
+  margin-bottom:8px;display:none;}
+.doc-item.selected{border-color:var(--red);background:var(--red-light);}
+.btn-delete{background:#dc3545;color:white;}
+.btn-delete:hover{background:#b02a37;}
 </style>
 <style>
 :root{
@@ -192,8 +220,22 @@ body{font-family:var(--font);background:var(--bg);min-height:100vh;
 .empty{text-align:center;padding:32px 20px;color:var(--lgray);}
 .empty i{font-size:36px;display:block;margin-bottom:8px;}
 
-/* Filter bar */
-.filter-bar{display:flex;gap:8px;margin-bottom:14px;}
+/* Password modal */
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,0.5);z-index:999;justify-content:center;align-items:center;}
+.modal-overlay.active{display:flex;}
+.modal{background:var(--white);border-radius:var(--radius);padding:24px;
+  width:90%;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,0.2);}
+.modal-title{font-size:16px;font-weight:700;color:#1a1a2e;
+  text-align:center;margin-bottom:6px;}
+.modal-sub{font-size:13px;color:var(--gray);text-align:center;margin-bottom:16px;}
+.modal input{width:100%;font-size:16px;padding:12px 14px;
+  border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  text-align:center;letter-spacing:4px;margin-bottom:10px;}
+.modal input:focus{outline:none;border-color:var(--red);}
+.modal-btns{display:flex;gap:8px;}
+.modal-btns button{flex:1;padding:11px;border:none;border-radius:var(--radius-sm);
+  font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);}
 .filter-bar select,.filter-bar input{
   font-size:14px;padding:8px 10px;
   border:0.5px solid var(--border);border-radius:var(--radius-sm);
@@ -201,13 +243,32 @@ body{font-family:var(--font);background:var(--bg);min-height:100vh;
 </style>
 </head>
 <body>
+
+<!-- Login screen -->
+<div class="login-screen" id="login-screen">
+  <img class="login-logo"
+    src="https://drive.google.com/thumbnail?id=16Yh2nkcED-hnDSjjiZi67M7tUcOauQJh&sz=w200"
+    alt="Logo">
+  <div class="login-title">قنصلية تونس ببولونيا</div>
+  <div class="login-sub">تسليم الوثائق | Consegna Documenti</div>
+  <div class="login-box">
+    <label>أدخل كلمة المرور / Inserisci la password</label>
+    <input type="password" id="login-pwd" placeholder="••••••"
+      onkeydown="if(event.key==='Enter')verificaLogin()">
+    <div class="login-err" id="login-err">❌ كلمة المرور غير صحيحة</div>
+    <button class="btn btn-red" onclick="verificaLogin()">
+      <i class="ti ti-lock-open"></i> دخول
+    </button>
+  </div>
+</div>
 <div class="app">
 
 <!-- Header -->
 <div class="hdr">
   <img src="https://drive.google.com/thumbnail?id=16Yh2nkcED-hnDSjjiZi67M7tUcOauQJh&sz=w200" alt="Logo">
-  <div class="hdr-title">استلام الوثائق</div>
-  <div class="hdr-sub">قنصلية تونس ببولونيا | Gestione Ritiri</div>
+  <div class="hdr-title">قنصلية تونس ببولونيا</div>
+  <div class="hdr-title" style="font-size:13px;font-weight:600;">Consolato di Tunisia a Bologna</div>
+  <div class="hdr-sub">تسليم الوثائق | Consegna Documenti</div>
 </div>
 
 <!-- Tabs -->
@@ -377,9 +438,32 @@ body{font-family:var(--font);background:var(--bg);min-height:100vh;
   </div>
 
   <div id="doc-list" class="doc-list"></div>
+  <div style="margin-top:16px;">
+    <button class="btn btn-delete" onclick="cancellaSelezionati()" id="btn-cancella" style="display:none;">
+      <i class="ti ti-trash"></i> حذف المحدد
+    </button>
+  </div>
 </div>
 
 </div><!-- /app -->
+
+<!-- Modal password admin -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">🔐 كلمة المرور</div>
+    <div class="modal-sub">أدخل كلمة مرور المسؤول لتأكيد التسليم</div>
+    <input type="password" id="modal-pwd" placeholder="••••••"
+      onkeydown="if(event.key==='Enter')verificaPassword()">
+    <div id="modal-err" style="color:var(--red);font-size:13px;text-align:center;
+      margin-bottom:8px;display:none;">❌ كلمة المرور غير صحيحة</div>
+    <div class="modal-btns">
+      <button onclick="chiudiModal()"
+        style="background:var(--border);color:var(--gray);">إلغاء</button>
+      <button onclick="verificaPassword()"
+        style="background:var(--green);color:white;">تأكيد ✅</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyOam23zNuaO1GaMq4GderJ7cNja6PVnQwMbsYDzx4zYx0DnVp7jNhhqn4GLEaXP_yy/exec';
@@ -444,7 +528,8 @@ function renderList() {
     const svc = Object.keys(SERVIZI).find(k=>d.codice.includes(k)) || 'DOC';
     const isConsegnato = d.stato === 'consegnato';
     return `<div class="doc-item ${isConsegnato?'consegnato':''}"
-      onclick="apriDettaglio('${d.codice}')">
+      style="cursor:pointer;"
+      onclick="toggleSelezione('${d.codice}', this)">
       <div class="doc-code">${d.codice.split('-').pop()}</div>
       <div class="doc-info">
         <div class="doc-name">${d.nome||''}</div>
@@ -716,6 +801,68 @@ function fermaCamera(id) {
   if(wrap)    wrap.classList.remove('active');
   if(btnStop) btnStop.style.display = 'none';
   if(btnCam)  btnCam.style.display  = '';
+}
+
+// ── LOGIN ─────────────────────────────────────────────────────
+let isAuthenticated = false;
+
+async function verificaLogin() {
+  const pwd = document.getElementById('login-pwd').value;
+  const err = document.getElementById('login-err');
+  if (!pwd) return;
+  err.style.display = 'none';
+  try {
+    const r = await fetch(SCRIPT_URL + `?action=check_password&pwd=${encodeURIComponent(pwd)}`);
+    const d = await r.json();
+    if (d.ok) {
+      isAuthenticated = true;
+      document.getElementById('login-screen').classList.add('hidden');
+      loadDocs();
+    } else {
+      err.style.display = 'block';
+      document.getElementById('login-pwd').value = '';
+      document.getElementById('login-pwd').focus();
+    }
+  } catch(e) {
+    err.textContent = '❌ خطأ في الاتصال';
+    err.style.display = 'block';
+  }
+}
+
+// ── CANCELLA DOCUMENTI ────────────────────────────────────────
+let selezionati = new Set();
+
+function toggleSelezione(codice, el) {
+  if (selezionati.has(codice)) {
+    selezionati.delete(codice);
+    el.classList.remove('selected');
+  } else {
+    selezionati.add(codice);
+    el.classList.add('selected');
+  }
+  document.getElementById('btn-cancella').style.display =
+    selezionati.size > 0 ? '' : 'none';
+}
+
+async function cancellaSelezionati() {
+  if (selezionati.size === 0) return;
+  if (!confirm(`Eliminare ${selezionati.size} documento/i?`)) return;
+  let eliminati = 0;
+  for (const codice of selezionati) {
+    try {
+      const r = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        redirect: 'follow',
+        body: JSON.stringify({ action: 'ritiro_delete', codice })
+      });
+      const text = await r.text();
+      try { const d = JSON.parse(text); if (d.ok) eliminati++; } catch(e) { eliminati++; }
+    } catch(e) {}
+  }
+  selezionati.clear();
+  document.getElementById('btn-cancella').style.display = 'none';
+  await loadDocs();
+  alert(`✅ Eliminati ${eliminati} documento/i`);
 }
 
 // ── SERVICE WORKER ────────────────────────────────────────────
