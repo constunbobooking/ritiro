@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>استلام الوثائق — قنصلية تونس ببولونيا</title>
+
+<!-- PWA -->
+<meta name="application-name" content="استلام الوثائق">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="استلام">
+<meta name="theme-color" content="#C8102E">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="https://drive.google.com/thumbnail?id=16Yh2nkcED-hnDSjjiZi67M7tUcOauQJh&sz=w192">
+<link rel="icon" href="https://drive.google.com/thumbnail?id=16Yh2nkcED-hnDSjjiZi67M7tUcOauQJh&sz=w192">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <style>
@@ -705,6 +716,13 @@ function fermaCamera(id) {
   if(wrap)    wrap.classList.remove('active');
   if(btnStop) btnStop.style.display = 'none';
   if(btnCam)  btnCam.style.display  = '';
+}
+
+// ── SERVICE WORKER ────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js')
+    .then(() => console.log('✅ SW registrato'))
+    .catch(e => console.log('SW error:', e));
 }
 
 // ── INIT ──────────────────────────────────────────────────────
