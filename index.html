@@ -5,6 +5,25 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>استلام الوثائق — قنصلية تونس ببولونيا</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<style>
+/* Camera scanner */
+.scanner-wrap{display:none;position:relative;margin-top:12px;
+  border-radius:var(--radius-sm);overflow:hidden;background:#000;}
+.scanner-wrap.active{display:block;}
+.scanner-wrap video{width:100%;display:block;max-height:260px;object-fit:cover;}
+.scanner-wrap canvas{display:none;}
+.scanner-line{position:absolute;top:50%;left:10%;right:10%;
+  height:2px;background:var(--red);
+  box-shadow:0 0 8px var(--red);
+  animation:scan-move 2s ease-in-out infinite;}
+@keyframes scan-move{
+  0%,100%{top:25%} 50%{top:75%}
+}
+.btn-camera{background:var(--blue);color:var(--white);}
+.btn-camera:hover{background:#1557b0;}
+.btn-stop{background:#555;color:var(--white);}
+</style>
 <style>
 :root{
   --red:#C8102E; --red-dark:#a00d25; --red-light:#fff0f3;
@@ -205,6 +224,17 @@ body{font-family:var(--font);background:var(--bg);min-height:100vh;
       placeholder="CONS-BO-2026-BJ3-0045"
       oninput="this.value=this.value.toUpperCase()"
       onkeydown="if(event.key==='Enter')cercaDocumento()">
+    <div class="scanner-wrap" id="scanner-scan">
+      <video id="video-scan" playsinline></video>
+      <canvas id="canvas-scan"></canvas>
+      <div class="scanner-line"></div>
+    </div>
+    <button class="btn btn-camera" onclick="avviaCamera('scan')" id="btn-cam-scan" style="margin-top:8px;">
+      <i class="ti ti-camera"></i> مسح بالكاميرا
+    </button>
+    <button class="btn btn-stop" onclick="fermaCamera('scan')" id="btn-stop-scan" style="display:none;margin-top:8px;">
+      <i class="ti ti-x"></i> إيقاف الكاميرا
+    </button>
   </div>
   <button class="btn btn-red" onclick="cercaDocumento()">
     <i class="ti ti-search"></i> بحث عن الوثيقة
@@ -234,6 +264,17 @@ body{font-family:var(--font);background:var(--bg);min-height:100vh;
       oninput="this.value=this.value.toUpperCase()"
       onkeydown="if(event.key==='Enter')confermaPosizione()"
       style="margin-top:10px;">
+    <div class="scanner-wrap" id="scanner-pos">
+      <video id="video-pos" playsinline></video>
+      <canvas id="canvas-pos"></canvas>
+      <div class="scanner-line"></div>
+    </div>
+    <button class="btn btn-camera" onclick="avviaCamera('pos')" style="margin-top:6px;">
+      <i class="ti ti-camera"></i> مسح بالكاميرا
+    </button>
+    <button class="btn btn-stop" onclick="fermaCamera('pos')" id="btn-stop-pos" style="display:none;margin-top:6px;">
+      <i class="ti ti-x"></i> إيقاف الكاميرا
+    </button>
     <button class="btn btn-red" onclick="confermaPosizione()" style="margin-top:8px;">
       <i class="ti ti-check"></i> تأكيد الموضع
     </button>
@@ -253,6 +294,17 @@ body{font-family:var(--font);background:var(--bg);min-height:100vh;
       oninput="this.value=this.value.toUpperCase()"
       onkeydown="if(event.key==='Enter')confermaDocumento()"
       style="margin-top:10px;" disabled>
+    <div class="scanner-wrap" id="scanner-doc">
+      <video id="video-doc" playsinline></video>
+      <canvas id="canvas-doc"></canvas>
+      <div class="scanner-line"></div>
+    </div>
+    <button class="btn btn-camera" onclick="avviaCamera('doc')" id="btn-cam-doc" style="margin-top:6px;" disabled>
+      <i class="ti ti-camera"></i> مسح بالكاميرا
+    </button>
+    <button class="btn btn-stop" onclick="fermaCamera('doc')" id="btn-stop-doc" style="display:none;margin-top:6px;">
+      <i class="ti ti-x"></i> إيقاف الكاميرا
+    </button>
     <button class="btn btn-red" onclick="confermaDocumento()"
       style="margin-top:8px;" id="btn-step2" disabled>
       <i class="ti ti-check"></i> تأكيد الوثيقة
@@ -576,8 +628,89 @@ function apriDettaglio(codice) {
   cercaDocumento();
 }
 
+// ── CAMERA SCANNER ────────────────────────────────────────────
+let streams = {}; // { scan, pos, doc } → MediaStream
+let scanIntervals = {};
+
+async function avviaCamera(id) {
+  try {
+    // Ferma eventuale stream attivo
+    fermaCamera(id);
+    const video  = document.getElementById('video-' + id);
+    const wrap   = document.getElementById('scanner-' + id);
+    const btnStop = document.getElementById('btn-stop-' + id);
+    const btnCam  = document.getElementById('btn-cam-' + id);
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: 1280, height: 720 }
+    });
+    streams[id] = stream;
+    video.srcObject = stream;
+    await video.play();
+    wrap.classList.add('active');
+    if(btnStop) btnStop.style.display = '';
+    if(btnCam)  btnCam.style.display  = 'none';
+
+    // Scansiona ogni 200ms
+    const canvas = document.getElementById('canvas-' + id);
+    const ctx    = canvas.getContext('2d');
+    scanIntervals[id] = setInterval(() => {
+      if(video.readyState !== video.HAVE_ENOUGH_DATA) return;
+      canvas.width  = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      if(code) {
+        const val = code.data.toUpperCase();
+        // Inserisce il valore nel campo corretto
+        if(id === 'scan') {
+          document.getElementById('scan-input').value = val;
+          fermaCamera('scan');
+          cercaDocumento();
+        } else if(id === 'pos') {
+          document.getElementById('pos-input').value = val;
+          fermaCamera('pos');
+          confermaPosizione();
+        } else if(id === 'doc') {
+          document.getElementById('doc-input').value = val;
+          fermaCamera('doc');
+          confermaDocumento();
+        }
+      }
+    }, 200);
+  } catch(err) {
+    alert('لا يمكن الوصول إلى الكاميرا:\n' + err.message);
+  }
+}
+
+function fermaCamera(id) {
+  if(streams[id]) {
+    streams[id].getTracks().forEach(t => t.stop());
+    streams[id] = null;
+  }
+  if(scanIntervals[id]) {
+    clearInterval(scanIntervals[id]);
+    scanIntervals[id] = null;
+  }
+  const wrap    = document.getElementById('scanner-' + id);
+  const btnStop = document.getElementById('btn-stop-' + id);
+  const btnCam  = document.getElementById('btn-cam-' + id);
+  if(wrap)    wrap.classList.remove('active');
+  if(btnStop) btnStop.style.display = 'none';
+  if(btnCam)  btnCam.style.display  = '';
+}
+
 // ── INIT ──────────────────────────────────────────────────────
 loadDocs();
+
+// Abilita bottone camera step2 quando step1 è completato
+const _origConfermaPosizione = confermaPosizione;
+confermaPosizione = function() {
+  _origConfermaPosizione();
+  const btn = document.getElementById('btn-cam-doc');
+  if(btn) btn.disabled = false;
+};
 </script>
 </body>
 </html>
