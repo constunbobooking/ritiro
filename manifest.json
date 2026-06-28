@@ -1,0 +1,42 @@
+{
+  "name": "استلام الوثائق — قنصلية تونس ببولونيا",
+  "short_name": "استلام",
+  "description": "Gestione ritiro documenti consolato",
+  "start_url": "/ritiro/",
+  "scope": "/ritiro/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#C8102E",
+  "theme_color": "#C8102E",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "https://drive.google.com/thumbnail?id=16Yh2nkcED-hnDSjjiZi67M7tUcOauQJh&sz=w192",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://drive.google.com/thumbnail?id=16Yh2nkcED-hnDSjjiZi67M7tUcOauQJh&sz=w512",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["utilities", "productivity"],
+  "shortcuts": [
+    {
+      "name": "مسح وثيقة",
+      "short_name": "مسح",
+      "url": "/ritiro/?tab=scan",
+      "description": "Scansiona documento"
+    },
+    {
+      "name": "أرشفة وثيقة",
+      "short_name": "أرشفة",
+      "url": "/ritiro/?tab=archive",
+      "description": "Archivia documento"
+    }
+  ]
+}
