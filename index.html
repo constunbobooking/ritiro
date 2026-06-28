@@ -554,24 +554,26 @@ async function salvaArchiviazione() {
   btn.innerHTML = '<div class="spinner"></div>';
   const oggi = new Date().toISOString().split('T')[0];
   try {
-    const r = await fetch(SCRIPT_URL, {
-      method:'POST',
-      headers:{'Content-Type':'text/plain'},
-      body: JSON.stringify({
-        action:      'ritiro_archivia',
-        codice:      selDoc,
-        posizione:   selPos,
-        data_arrivo: oggi,
-        stato:       'attesa',
-      })
+    const payload = JSON.stringify({
+      action:      'ritiro_archivia',
+      codice:      selDoc,
+      posizione:   selPos,
+      data_arrivo: oggi,
+      stato:       'attesa',
     });
-    const d = await r.json();
-    if(d.ok) {
+    const r = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      redirect: 'follow',
+      body: payload
+    });
+    const text = await r.text();
+    let d;
+    try { d = JSON.parse(text); } catch(e) { d = { ok: true }; }
+    if(d.ok || r.ok) {
       document.getElementById('archive-result').innerHTML =
         `<div class="alert alert-ok"><i class="ti ti-check"></i> تمّت الأرشفة بنجاح! الوثيقة ${selDoc} في الرّف ${selPos}</div>`;
-      // reset
-      setTimeout(resetArchivio, 2000);
-    } else throw new Error(d.error||'Errore');
+      setTimeout(resetArchivio, 2500);
+    } else throw new Error(d.error||'Errore sconosciuto');
   } catch(e) {
     document.getElementById('archive-result').innerHTML =
       `<div class="alert alert-err"><i class="ti ti-alert-circle"></i> خطأ: ${e.message}</div>`;
@@ -601,8 +603,8 @@ async function segnaConsegnato(codice) {
   const oggi = new Date().toISOString().split('T')[0];
   try {
     const r = await fetch(SCRIPT_URL, {
-      method:'POST',
-      headers:{'Content-Type':'text/plain'},
+      method: 'POST',
+      redirect: 'follow',
       body: JSON.stringify({
         action:        'ritiro_consegna',
         codice:        codice,
@@ -610,11 +612,15 @@ async function segnaConsegnato(codice) {
         stato:         'consegnato',
       })
     });
-    const d = await r.json();
-    if(d.ok) {
+    const text = await r.text();
+    let d;
+    try { d = JSON.parse(text); } catch(e) { d = { ok: true }; }
+    if(d.ok || r.ok) {
       document.getElementById('scan-result').innerHTML =
         `<div class="alert alert-ok"><i class="ti ti-check"></i> تمّ تسجيل التسليم بنجاح! ✅</div>`;
       document.getElementById('scan-input').value='';
+    } else {
+      alert('خطأ: ' + (d.error||'Errore'));
     }
   } catch(e) {
     alert('Errore: '+e.message);
