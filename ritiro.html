@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>استلام الوثائق — قنصلية تونس ببولونيا</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+:root{
+  --red:#C8102E; --red-dark:#a00d25; --red-light:#fff0f3;
+  --green:#2d8a4e; --green-light:#e6f5eb;
+  --blue:#1a73e8; --blue-light:#e8f0fe;
+  --orange:#e67e22; --orange-light:#fef3e2;
+  --gray:#555; --lgray:#999; --border:#e0e0e0;
+  --bg:#f0f0f0; --white:#fff;
+  --font:'Calibri','Segoe UI','Tahoma',Arial,sans-serif;
+  --mono:'Courier New',monospace;
+  --radius:12px; --radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg);min-height:100vh;
+  display:flex;justify-content:center;align-items:flex-start;padding:20px 0;}
+.app{max-width:480px;width:100%;background:var(--white);
+  border-radius:var(--radius);overflow:hidden;
+  box-shadow:0 4px 24px rgba(0,0,0,0.10);}
+
+/* Header */
+.hdr{background:var(--red);padding:18px 20px 14px;
+  display:flex;flex-direction:column;align-items:center;gap:8px;}
+.hdr img{width:72px;height:72px;border-radius:8px;object-fit:contain;
+  background:var(--white);padding:4px;
+  border:2px solid rgba(255,255,255,0.6);
+  box-shadow:0 2px 8px rgba(0,0,0,0.25);}
+.hdr-title{color:var(--white);font-size:17px;font-weight:700;text-align:center;}
+.hdr-sub{color:rgba(255,255,255,0.85);font-size:13px;text-align:center;}
+
+/* Tabs */
+.tabs{display:flex;border-bottom:1px solid var(--border);background:#fafafa;}
+.tab{flex:1;padding:12px 8px;text-align:center;font-size:14px;
+  font-weight:600;color:var(--lgray);cursor:pointer;
+  border-bottom:2px solid transparent;transition:all .15s;
+  font-family:var(--font);}
+.tab.active{color:var(--red);border-bottom-color:var(--red);}
+.tab i{display:block;font-size:20px;margin-bottom:4px;}
+
+/* Panel */
+.panel{padding:20px;display:none;}
+.panel.active{display:block;}
+
+/* Scan section */
+.scan-box{background:var(--bg);border-radius:var(--radius-sm);
+  padding:20px;text-align:center;margin-bottom:16px;}
+.scan-icon{font-size:48px;color:var(--red);margin-bottom:12px;}
+.scan-title{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:6px;}
+.scan-sub{font-size:13px;color:var(--gray);}
+.code-input{width:100%;font-size:16px;padding:12px 14px;
+  border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  font-family:var(--mono);letter-spacing:2px;
+  text-align:center;direction:ltr;margin-top:12px;background:var(--white);}
+.code-input:focus{outline:none;border-color:var(--red);}
+.btn{width:100%;padding:13px;border:none;border-radius:var(--radius-sm);
+  font-size:15px;font-weight:700;cursor:pointer;
+  font-family:var(--font);margin-top:10px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:background .15s;}
+.btn-red{background:var(--red);color:var(--white);}
+.btn-red:hover{background:var(--red-dark);}
+.btn-green{background:var(--green);color:var(--white);}
+.btn-green:hover{background:#1e6b38;}
+.btn-outline{background:var(--white);color:var(--red);
+  border:1.5px solid var(--red);}
+.btn-outline:hover{background:var(--red-light);}
+.btn:disabled{background:var(--border);color:var(--lgray);cursor:not-allowed;}
+
+/* Steps archiviazione */
+.step{background:var(--bg);border-radius:var(--radius-sm);
+  padding:14px 16px;margin-bottom:10px;
+  border:1.5px solid var(--border);transition:all .2s;}
+.step.active{border-color:var(--red);background:var(--red-light);}
+.step.done{border-color:var(--green);background:var(--green-light);}
+.step-num{width:28px;height:28px;border-radius:50%;
+  background:var(--border);color:var(--gray);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;flex-shrink:0;}
+.step.active .step-num{background:var(--red);color:var(--white);}
+.step.done .step-num{background:var(--green);color:var(--white);}
+.step-row{display:flex;align-items:center;gap:12px;}
+.step-label{font-size:14px;font-weight:600;color:#1a1a2e;}
+.step-val{font-size:13px;color:var(--gray);margin-top:2px;}
+.step.done .step-label{color:var(--green);}
+
+/* Result card */
+.result-card{border-radius:var(--radius-sm);overflow:hidden;
+  border:1.5px solid var(--border);margin-top:14px;}
+.rc-hdr{padding:12px 16px;display:flex;justify-content:space-between;
+  align-items:center;}
+.rc-hdr.attesa{background:var(--orange);color:var(--white);}
+.rc-hdr.consegnato{background:var(--green);color:var(--white);}
+.rc-hdr.non_trovato{background:#888;color:var(--white);}
+.rc-code{font-family:var(--mono);font-size:15px;font-weight:700;
+  letter-spacing:2px;}
+.rc-status{font-size:12px;padding:3px 10px;border-radius:20px;
+  background:rgba(255,255,255,0.25);font-weight:600;}
+.rc-body{padding:14px 16px;}
+.rc-row{display:flex;justify-content:space-between;align-items:center;
+  padding:7px 0;border-bottom:0.5px solid var(--border);font-size:14px;}
+.rc-row:last-child{border-bottom:none;}
+.rc-lbl{color:var(--gray);font-size:13px;}
+.rc-val{font-weight:600;color:#1a1a2e;}
+.pos-badge{background:var(--red);color:var(--white);
+  border-radius:var(--radius-sm);padding:6px 16px;
+  font-size:20px;font-weight:700;font-family:var(--mono);}
+
+/* Service badges */
+.svc-badges{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;}
+.svc-badge{padding:6px 14px;border-radius:20px;font-size:13px;
+  font-weight:600;cursor:pointer;border:1.5px solid var(--border);
+  background:var(--white);color:var(--gray);transition:all .15s;}
+.svc-badge.active{background:var(--red);border-color:var(--red);color:var(--white);}
+
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;}
+.stat{background:var(--bg);border-radius:var(--radius-sm);
+  padding:12px;text-align:center;}
+.stat-n{font-size:24px;font-weight:700;font-family:var(--mono);}
+.stat-l{font-size:11px;color:var(--lgray);margin-top:2px;text-transform:uppercase;}
+.stat.attesa .stat-n{color:var(--orange);}
+.stat.consegnato .stat-n{color:var(--green);}
+.stat.totale .stat-n{color:var(--blue);}
+
+/* List */
+.doc-list{display:flex;flex-direction:column;gap:6px;}
+.doc-item{padding:10px 14px;border:0.5px solid var(--border);
+  border-radius:var(--radius-sm);background:var(--white);
+  display:flex;align-items:center;gap:10px;cursor:pointer;
+  transition:all .15s;}
+.doc-item:hover{border-color:var(--red);background:var(--red-light);}
+.doc-item.consegnato{opacity:.6;}
+.doc-code{font-family:var(--mono);font-size:13px;color:var(--red);
+  font-weight:700;min-width:80px;}
+.doc-info{flex:1;}
+.doc-name{font-size:14px;font-weight:600;color:#1a1a2e;}
+.doc-meta{font-size:12px;color:var(--lgray);}
+.doc-pos{background:var(--red-light);color:var(--red);
+  border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;
+  font-family:var(--mono);}
+.doc-pos.consegnato{background:var(--green-light);color:var(--green);}
+
+/* Alert */
+.alert{padding:12px 14px;border-radius:var(--radius-sm);
+  font-size:14px;margin-top:12px;display:flex;gap:8px;align-items:flex-start;}
+.alert-err{background:#ffeef0;border:1px solid #f5c2c7;color:var(--red);}
+.alert-ok{background:var(--green-light);border:1px solid #a3d9b1;color:var(--green);}
+.alert-info{background:var(--blue-light);border:1px solid #b3c8f5;color:var(--blue);}
+
+/* Loading */
+.spinner{display:inline-block;width:20px;height:20px;
+  border:3px solid rgba(200,16,46,.2);border-top-color:var(--red);
+  border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.empty{text-align:center;padding:32px 20px;color:var(--lgray);}
+.empty i{font-size:36px;display:block;margin-bottom:8px;}
+
+/* Filter bar */
+.filter-bar{display:flex;gap:8px;margin-bottom:14px;}
+.filter-bar select,.filter-bar input{
+  font-size:14px;padding:8px 10px;
+  border:0.5px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--white);font-family:var(--font);flex:1;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Header -->
+<div class="hdr">
+  <img src="https://drive.google.com/thumbnail?id=16Yh2nkcED-hnDSjjiZi67M7tUcOauQJh&sz=w200" alt="Logo">
+  <div class="hdr-title">استلام الوثائق</div>
+  <div class="hdr-sub">قنصلية تونس ببولونيا | Gestione Ritiri</div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" onclick="showTab('scan')" id="tab-scan">
+    <i class="ti ti-qrcode"></i>مسح
+  </div>
+  <div class="tab" onclick="showTab('archive')" id="tab-archive">
+    <i class="ti ti-archive"></i>أرشفة
+  </div>
+  <div class="tab" onclick="showTab('list')" id="tab-list">
+    <i class="ti ti-list"></i>قائمة
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- TAB 1: مسح — Scansiona e ritira -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="panel active" id="panel-scan">
+  <div class="scan-box">
+    <div class="scan-icon"><i class="ti ti-qrcode"></i></div>
+    <div class="scan-title">امسح رمز الوثيقة</div>
+    <div class="scan-sub">أدخل رمز الوثيقة أو امسحه بالكاميرا</div>
+    <input class="code-input" id="scan-input" type="text"
+      placeholder="CONS-BO-2026-BJ3-0045"
+      oninput="this.value=this.value.toUpperCase()"
+      onkeydown="if(event.key==='Enter')cercaDocumento()">
+  </div>
+  <button class="btn btn-red" onclick="cercaDocumento()">
+    <i class="ti ti-search"></i> بحث عن الوثيقة
+  </button>
+  <div id="scan-result"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- TAB 2: أرشفة — Archivia documento -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="panel" id="panel-archive">
+  <div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:16px;">
+    أرشفة وثيقة جديدة
+  </div>
+
+  <!-- Step 1: Scansiona posizione -->
+  <div class="step active" id="step1">
+    <div class="step-row">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-label">امسح رمز الرّف</div>
+        <div class="step-val">Scansiona il QR del ripiano</div>
+      </div>
+    </div>
+    <input class="code-input" id="pos-input" type="text"
+      placeholder="RIP-15"
+      oninput="this.value=this.value.toUpperCase()"
+      onkeydown="if(event.key==='Enter')confermaPosizione()"
+      style="margin-top:10px;">
+    <button class="btn btn-red" onclick="confermaPosizione()" style="margin-top:8px;">
+      <i class="ti ti-check"></i> تأكيد الموضع
+    </button>
+  </div>
+
+  <!-- Step 2: Scansiona documento -->
+  <div class="step" id="step2">
+    <div class="step-row">
+      <div class="step-num">2</div>
+      <div>
+        <div class="step-label">امسح رمز الوثيقة</div>
+        <div class="step-val" id="step2-pos">Scansiona il QR del documento</div>
+      </div>
+    </div>
+    <input class="code-input" id="doc-input" type="text"
+      placeholder="CONS-BO-2026-BJ3-0045"
+      oninput="this.value=this.value.toUpperCase()"
+      onkeydown="if(event.key==='Enter')confermaDocumento()"
+      style="margin-top:10px;" disabled>
+    <button class="btn btn-red" onclick="confermaDocumento()"
+      style="margin-top:8px;" id="btn-step2" disabled>
+      <i class="ti ti-check"></i> تأكيد الوثيقة
+    </button>
+  </div>
+
+  <!-- Step 3: Conferma -->
+  <div class="step" id="step3">
+    <div class="step-row">
+      <div class="step-num">3</div>
+      <div>
+        <div class="step-label">تأكيد الأرشفة</div>
+        <div class="step-val">Conferma e salva</div>
+      </div>
+    </div>
+    <div id="step3-preview" style="margin-top:10px;"></div>
+    <button class="btn btn-green" onclick="salvaArchiviazione()"
+      style="margin-top:8px;" id="btn-step3" disabled>
+      <i class="ti ti-device-floppy"></i> حفظ الموضع
+    </button>
+  </div>
+
+  <div id="archive-result"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- TAB 3: قائمة — Lista documenti -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="panel" id="panel-list">
+  <div class="stats-grid">
+    <div class="stat totale">
+      <div class="stat-n" id="s-tot">0</div>
+      <div class="stat-l">المجموع</div>
+    </div>
+    <div class="stat attesa">
+      <div class="stat-n" id="s-att">0</div>
+      <div class="stat-l">في الانتظار</div>
+    </div>
+    <div class="stat consegnato">
+      <div class="stat-n" id="s-con">0</div>
+      <div class="stat-l">تمّ التسليم</div>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <select id="filter-svc" onchange="renderList()">
+      <option value="">كل الخدمات</option>
+      <option value="BJ3">البطاقة عدد 3</option>
+      <option value="BTH">بطاقة التحركات</option>
+      <option value="DBH">الدفتر المهني</option>
+      <option value="TAJ">التأجيل</option>
+      <option value="IEF">الإعفاء</option>
+    </select>
+    <select id="filter-stato" onchange="renderList()">
+      <option value="">كل الحالات</option>
+      <option value="attesa">في الانتظار</option>
+      <option value="consegnato">تمّ التسليم</option>
+    </select>
+  </div>
+
+  <div id="doc-list" class="doc-list"></div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzgcdDgdZxPTPepVlEpQIFOws2i0TN5_HKH0Ocu-hwHWO3D2d0TGcc9hR8w-J84xgvAMA/exec';
+
+// ── STATO ─────────────────────────────────────────────────────
+let docs = []; // cache locale
+let selPos = null;
+let selDoc = null;
+
+const SERVIZI = {
+  BJ3: 'البطاقة عدد 3',
+  BTH: 'بطاقة التحركات الحدودية',
+  DBH: 'الدفتر المهني لرجال البحر',
+  TAJ: 'التأجيل من الخدمة الوطنية',
+  IEF: 'الإعفاء من الخدمة الوطنية',
+  DOC: 'وثيقة أخرى',
+};
+
+// ── TABS ──────────────────────────────────────────────────────
+function showTab(tab) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('panel-'+tab).classList.add('active');
+  document.getElementById('tab-'+tab).classList.add('active');
+  if(tab==='list') { loadDocs(); }
+}
+
+// ── CARICA DOCUMENTI ──────────────────────────────────────────
+async function loadDocs() {
+  try {
+    const r = await fetch(SCRIPT_URL + '?action=ritiro_list');
+    const d = await r.json();
+    if(d.ok) { docs = d.docs || []; renderList(); }
+  } catch(e) {
+    // usa cache locale
+    renderList();
+  }
+}
+
+// ── RENDER LISTA ──────────────────────────────────────────────
+function renderList() {
+  const fSvc   = document.getElementById('filter-svc').value;
+  const fStato = document.getElementById('filter-stato').value;
+
+  let filtered = docs.filter(d => {
+    if(fSvc   && !d.codice.includes(fSvc))    return false;
+    if(fStato && d.stato !== fStato)           return false;
+    return true;
+  });
+
+  // stats su tutti
+  document.getElementById('s-tot').textContent = docs.length;
+  document.getElementById('s-att').textContent = docs.filter(d=>d.stato==='attesa').length;
+  document.getElementById('s-con').textContent = docs.filter(d=>d.stato==='consegnato').length;
+
+  const list = document.getElementById('doc-list');
+  if(!filtered.length) {
+    list.innerHTML = '<div class="empty"><i class="ti ti-file-off"></i>لا توجد وثائق</div>';
+    return;
+  }
+  list.innerHTML = filtered.map(d => {
+    const svc = Object.keys(SERVIZI).find(k=>d.codice.includes(k)) || 'DOC';
+    const isConsegnato = d.stato === 'consegnato';
+    return `<div class="doc-item ${isConsegnato?'consegnato':''}"
+      onclick="apriDettaglio('${d.codice}')">
+      <div class="doc-code">${d.codice.split('-').pop()}</div>
+      <div class="doc-info">
+        <div class="doc-name">${d.nome||''}</div>
+        <div class="doc-meta">${SERVIZI[svc]||svc} · ${d.data_arrivo||''}</div>
+      </div>
+      <div class="doc-pos ${isConsegnato?'consegnato':''}">
+        ${isConsegnato ? '✅' : (d.posizione||'—')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── CERCA DOCUMENTO (Tab mسح) ─────────────────────────────────
+async function cercaDocumento() {
+  const code = document.getElementById('scan-input').value.trim();
+  const res  = document.getElementById('scan-result');
+  if(!code) return;
+  res.innerHTML = '<div class="alert alert-info"><div class="spinner"></div> جارٍ البحث...</div>';
+  try {
+    const r = await fetch(SCRIPT_URL + `?action=ritiro_get&codice=${encodeURIComponent(code)}`);
+    const d = await r.json();
+    if(!d.ok || !d.doc) {
+      res.innerHTML = `<div class="alert alert-err"><i class="ti ti-alert-circle"></i> لم يُعثر على الوثيقة بهذا الرمز.</div>`;
+      return;
+    }
+    const doc = d.doc;
+    const isConsegnato = doc.stato === 'consegnato';
+    const svc = Object.keys(SERVIZI).find(k=>doc.codice.includes(k)) || 'DOC';
+    res.innerHTML = `
+      <div class="result-card">
+        <div class="rc-hdr ${isConsegnato?'consegnato':'attesa'}">
+          <span class="rc-code">${doc.codice}</span>
+          <span class="rc-status">${isConsegnato?'تمّ التسليم':'في انتظار الاستلام'}</span>
+        </div>
+        <div class="rc-body">
+          <div class="rc-row">
+            <span class="rc-lbl">الاسم واللقب</span>
+            <span class="rc-val">${doc.nome||'—'}</span>
+          </div>
+          <div class="rc-row">
+            <span class="rc-lbl">نوع الوثيقة</span>
+            <span class="rc-val">${SERVIZI[svc]||svc}</span>
+          </div>
+          <div class="rc-row">
+            <span class="rc-lbl">تاريخ الوصول</span>
+            <span class="rc-val">${doc.data_arrivo||'—'}</span>
+          </div>
+          <div class="rc-row">
+            <span class="rc-lbl">الموضع</span>
+            <span class="rc-val"><span class="pos-badge ${isConsegnato?'consegnato':''}">${doc.posizione||'—'}</span></span>
+          </div>
+          ${isConsegnato ? `
+          <div class="rc-row">
+            <span class="rc-lbl">تاريخ التسليم</span>
+            <span class="rc-val">${doc.data_consegna||'—'}</span>
+          </div>` : `
+          <button class="btn btn-green" onclick="segnaConsegnato('${doc.codice}')" style="margin-top:12px;">
+            <i class="ti ti-check"></i> تمّ التسليم ✅
+          </button>`}
+        </div>
+      </div>`;
+  } catch(e) {
+    // cerca in cache locale
+    const doc = docs.find(d=>d.codice===code);
+    if(doc) { /* mostra da cache */ }
+    else res.innerHTML = `<div class="alert alert-err"><i class="ti ti-wifi-off"></i> خطأ في الاتصال. تحقق من الإنترنت.</div>`;
+  }
+}
+
+// ── ARCHIVIAZIONE: Step 1 — Posizione ─────────────────────────
+function confermaPosizione() {
+  const pos = document.getElementById('pos-input').value.trim();
+  if(!pos) return;
+  selPos = pos;
+  // step 1 → done
+  document.getElementById('step1').className = 'step done';
+  // step 2 → active
+  const s2 = document.getElementById('step2');
+  s2.className = 'step active';
+  document.getElementById('step2-pos').textContent = `الرّف: ${pos} — امسح الآن رمز الوثيقة`;
+  document.getElementById('doc-input').disabled = false;
+  document.getElementById('btn-step2').disabled = false;
+  document.getElementById('doc-input').focus();
+}
+
+// ── ARCHIVIAZIONE: Step 2 — Documento ─────────────────────────
+function confermaDocumento() {
+  const doc = document.getElementById('doc-input').value.trim();
+  if(!doc) return;
+  selDoc = doc;
+  const svc = Object.keys(SERVIZI).find(k=>doc.includes(k)) || 'DOC';
+  // step 2 → done
+  document.getElementById('step2').className = 'step done';
+  // step 3 → active
+  document.getElementById('step3').className = 'step active';
+  document.getElementById('step3-preview').innerHTML = `
+    <div style="background:var(--bg);border-radius:var(--radius-sm);padding:12px;font-size:14px;">
+      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border);">
+        <span style="color:var(--gray)">الوثيقة</span>
+        <span style="font-weight:700;font-family:var(--mono);color:var(--red)">${doc}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border);">
+        <span style="color:var(--gray)">نوع الخدمة</span>
+        <span style="font-weight:700">${SERVIZI[svc]||svc}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:5px 0;">
+        <span style="color:var(--gray)">الموضع</span>
+        <span class="pos-badge">${selPos}</span>
+      </div>
+    </div>`;
+  document.getElementById('btn-step3').disabled = false;
+}
+
+// ── ARCHIVIAZIONE: Step 3 — Salva ─────────────────────────────
+async function salvaArchiviazione() {
+  const btn = document.getElementById('btn-step3');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div>';
+  const oggi = new Date().toISOString().split('T')[0];
+  try {
+    const r = await fetch(SCRIPT_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify({
+        action:      'ritiro_archivia',
+        codice:      selDoc,
+        posizione:   selPos,
+        data_arrivo: oggi,
+        stato:       'attesa',
+      })
+    });
+    const d = await r.json();
+    if(d.ok) {
+      document.getElementById('archive-result').innerHTML =
+        `<div class="alert alert-ok"><i class="ti ti-check"></i> تمّت الأرشفة بنجاح! الوثيقة ${selDoc} في الرّف ${selPos}</div>`;
+      // reset
+      setTimeout(resetArchivio, 2000);
+    } else throw new Error(d.error||'Errore');
+  } catch(e) {
+    document.getElementById('archive-result').innerHTML =
+      `<div class="alert alert-err"><i class="ti ti-alert-circle"></i> خطأ: ${e.message}</div>`;
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-device-floppy"></i> حفظ الموضع';
+  }
+}
+
+function resetArchivio() {
+  selPos = null; selDoc = null;
+  ['pos-input','doc-input'].forEach(id=>{
+    document.getElementById(id).value='';
+  });
+  document.getElementById('step1').className='step active';
+  document.getElementById('step2').className='step';
+  document.getElementById('step3').className='step';
+  document.getElementById('doc-input').disabled=true;
+  document.getElementById('btn-step2').disabled=true;
+  document.getElementById('btn-step3').disabled=true;
+  document.getElementById('step3-preview').innerHTML='';
+  document.getElementById('archive-result').innerHTML='';
+  document.getElementById('step2-pos').textContent='Scansiona il QR del documento';
+}
+
+// ── SEGNA CONSEGNATO ──────────────────────────────────────────
+async function segnaConsegnato(codice) {
+  const oggi = new Date().toISOString().split('T')[0];
+  try {
+    const r = await fetch(SCRIPT_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify({
+        action:        'ritiro_consegna',
+        codice:        codice,
+        data_consegna: oggi,
+        stato:         'consegnato',
+      })
+    });
+    const d = await r.json();
+    if(d.ok) {
+      document.getElementById('scan-result').innerHTML =
+        `<div class="alert alert-ok"><i class="ti ti-check"></i> تمّ تسجيل التسليم بنجاح! ✅</div>`;
+      document.getElementById('scan-input').value='';
+    }
+  } catch(e) {
+    alert('Errore: '+e.message);
+  }
+}
+
+// ── DETTAGLIO ─────────────────────────────────────────────────
+function apriDettaglio(codice) {
+  document.getElementById('scan-input').value = codice;
+  showTab('scan');
+  cercaDocumento();
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+loadDocs();
+</script>
+</body>
+</html>
