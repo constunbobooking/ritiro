@@ -82,6 +82,39 @@
 .btn-sig-clear{background:var(--bg);color:var(--gray);
   border:1px solid var(--border) !important;}
 .btn-sig-clear:hover{background:#e5e5e5;}
+
+/* Shelf grid cells */
+.shelf-cell{aspect-ratio:1;border-radius:var(--radius-sm);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:var(--mono);cursor:default;transition:transform .1s;
+  border:1.5px solid var(--border);background:var(--green-light);
+  position:relative;}
+.shelf-cell.occupied{background:var(--orange);border-color:var(--orange);
+  cursor:pointer;}
+.shelf-cell.occupied:active{transform:scale(0.95);}
+.shelf-num{font-size:15px;font-weight:700;color:var(--gray);}
+.shelf-cell.occupied .shelf-num{color:white;}
+.shelf-count{font-size:9px;color:var(--gray);margin-top:1px;}
+.shelf-cell.occupied .shelf-count{color:rgba(255,255,255,0.85);}
+.shelf-tooltip{display:none;position:absolute;bottom:calc(100% + 6px);
+  left:50%;transform:translateX(-50%);background:#1a1a2e;color:white;
+  font-size:11px;padding:6px 10px;border-radius:6px;white-space:nowrap;
+  z-index:10;font-family:var(--font);box-shadow:0 4px 12px rgba(0,0,0,0.2);}
+.shelf-cell.occupied:hover .shelf-tooltip{display:block;}
+
+/* Edit form */
+.edit-form{margin-top:14px;border:1.5px solid var(--border);
+  border-radius:var(--radius-sm);padding:16px;}
+.edit-field{margin-bottom:12px;}
+.edit-field label{display:block;font-size:12px;color:var(--gray);
+  font-weight:600;margin-bottom:4px;}
+.edit-field input,.edit-field select{width:100%;font-size:14px;
+  padding:10px 12px;border:1.5px solid var(--border);
+  border-radius:var(--radius-sm);font-family:var(--font);
+  background:var(--white);}
+.edit-field input:focus,.edit-field select:focus{outline:none;border-color:var(--red);}
+.edit-field input[dir="ltr"]{font-family:var(--mono);direction:ltr;text-align:left;}
+.edit-actions{display:flex;gap:8px;margin-top:14px;}
 </style>
 <style>
 :root{
@@ -114,12 +147,12 @@ body{font-family:var(--font);background:var(--bg);min-height:100vh;
 
 /* Tabs */
 .tabs{display:flex;border-bottom:1px solid var(--border);background:#fafafa;}
-.tab{flex:1;padding:12px 8px;text-align:center;font-size:14px;
+.tab{flex:1;padding:10px 3px;text-align:center;font-size:11px;
   font-weight:600;color:var(--lgray);cursor:pointer;
   border-bottom:2px solid transparent;transition:all .15s;
   font-family:var(--font);}
 .tab.active{color:var(--red);border-bottom-color:var(--red);}
-.tab i{display:block;font-size:20px;margin-bottom:4px;}
+.tab i{display:block;font-size:18px;margin-bottom:3px;}
 
 /* Panel */
 .panel{padding:20px;display:none;}
@@ -302,6 +335,12 @@ body{font-family:var(--font);background:var(--bg);min-height:100vh;
   <div class="tab" onclick="showTab('list')" id="tab-list">
     <i class="ti ti-list"></i>قائمة
   </div>
+  <div class="tab" onclick="showTab('shelves')" id="tab-shelves">
+    <i class="ti ti-stack"></i>الرّفوف
+  </div>
+  <div class="tab" onclick="showTab('edit')" id="tab-edit">
+    <i class="ti ti-edit"></i>تعديل
+  </div>
 </div>
 
 <!-- ═══════════════════════════════════════════════ -->
@@ -465,7 +504,73 @@ body{font-family:var(--font);background:var(--bg);min-height:100vh;
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════ -->
+<!-- TAB 4: الرّفوف — Vista ripiani in tempo reale -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="panel" id="panel-shelves">
+  <div class="stats-grid">
+    <div class="stat totale">
+      <div class="stat-n" id="sh-tot">48</div>
+      <div class="stat-l">مجموع الرفوف</div>
+    </div>
+    <div class="stat attesa">
+      <div class="stat-n" id="sh-occ">0</div>
+      <div class="stat-l">مشغولة</div>
+    </div>
+    <div class="stat consegnato">
+      <div class="stat-n" id="sh-free">48</div>
+      <div class="stat-l">فارغة</div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:14px;justify-content:center;margin-bottom:14px;
+    font-size:12px;color:var(--gray);">
+    <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;
+      background:var(--orange);margin-left:4px;"></span> مشغول</span>
+    <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;
+      background:var(--green-light);border:1px solid var(--border);margin-left:4px;"></span> فارغ</span>
+  </div>
+
+  <button class="btn btn-outline" onclick="loadShelves()" style="margin-bottom:14px;">
+    <i class="ti ti-refresh"></i> تحديث
+  </button>
+
+  <div id="shelves-grid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- TAB 5: تعديل — Modifica documento esistente -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="panel" id="panel-edit">
+  <div class="scan-box">
+    <div class="scan-icon"><i class="ti ti-edit"></i></div>
+    <div class="scan-title">ابحث عن وثيقة لتعديلها</div>
+    <div class="scan-sub">أدخل الرمز أو امسحه لتصحيح الموضع أو البيانات</div>
+    <input class="code-input" id="edit-search-input" type="text"
+      placeholder="CONS-BO-2026-BJ3-0045"
+      oninput="this.value=this.value.toUpperCase()"
+      onkeydown="if(event.key==='Enter')cercaPerModifica()">
+    <div class="scanner-wrap" id="scanner-edit">
+      <video id="video-edit" playsinline></video>
+      <canvas id="canvas-edit"></canvas>
+      <div class="scanner-line"></div>
+    </div>
+    <button class="btn btn-camera" onclick="avviaCamera('edit')" id="btn-cam-edit" style="margin-top:8px;">
+      <i class="ti ti-camera"></i> مسح بالكاميرا
+    </button>
+    <button class="btn btn-stop" onclick="fermaCamera('edit')" id="btn-stop-edit" style="display:none;margin-top:8px;">
+      <i class="ti ti-x"></i> إيقاف الكاميرا
+    </button>
+  </div>
+  <button class="btn btn-red" onclick="cercaPerModifica()">
+    <i class="ti ti-search"></i> بحث
+  </button>
+
+  <div id="edit-form-wrap"></div>
+</div>
+
 </div><!-- /app -->
+
 
 <!-- Modal password admin -->
 <div class="modal-overlay" id="modal-overlay">
@@ -509,6 +614,7 @@ function showTab(tab) {
   document.getElementById('panel-'+tab).classList.add('active');
   document.getElementById('tab-'+tab).classList.add('active');
   if(tab==='list') { loadDocs(); }
+  if(tab==='shelves') { loadShelves(); }
 }
 
 // ── CARICA DOCUMENTI ──────────────────────────────────────────
@@ -560,6 +666,181 @@ function renderList() {
       </div>
     </div>`;
   }).join('');
+}
+
+// ── RIPIANI: vista in tempo reale ──────────────────────────────
+const TOTALE_RIPIANI = 48;
+
+async function loadShelves() {
+  const grid = document.getElementById('shelves-grid');
+  grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:20px;">
+    <div class="spinner"></div></div>`;
+  try {
+    const r = await fetch(SCRIPT_URL + '?action=ritiro_list');
+    const d = await r.json();
+    if(d.ok) { docs = d.docs || []; }
+  } catch(e) { /* usa cache locale già presente in docs */ }
+  renderShelves();
+}
+
+function renderShelves() {
+  // Solo i documenti ancora "attesa" occupano fisicamente un ripiano —
+  // una volta consegnati, il ripiano torna libero per un nuovo documento.
+  const occupazione = {}; // { "RIP-05": [{codice, nome}, ...] }
+  docs.forEach(d => {
+    if(d.stato !== 'attesa' || !d.posizione) return;
+    const pos = d.posizione.toUpperCase();
+    if(!occupazione[pos]) occupazione[pos] = [];
+    occupazione[pos].push(d);
+  });
+
+  const occupatiCount = Object.keys(occupazione).length;
+  document.getElementById('sh-tot').textContent  = TOTALE_RIPIANI;
+  document.getElementById('sh-occ').textContent  = occupatiCount;
+  document.getElementById('sh-free').textContent = TOTALE_RIPIANI - occupatiCount;
+
+  const grid = document.getElementById('shelves-grid');
+  let html = '';
+  for(let i = 1; i <= TOTALE_RIPIANI; i++) {
+    const code = 'RIP-' + String(i).padStart(2,'0');
+    const occ  = occupazione[code];
+    const isOcc = !!occ;
+    const count = isOcc ? occ.length : 0;
+    const tooltip = isOcc
+      ? occ.map(d => (d.nome||d.codice)).join(' / ')
+      : '';
+    html += `<div class="shelf-cell ${isOcc?'occupied':''}"
+        onclick="${isOcc ? `mostraRipiano('${code}')` : ''}">
+      <div class="shelf-num">${i}</div>
+      ${isOcc ? `<div class="shelf-count">${count} وثيقة</div>` : ''}
+      ${isOcc ? `<div class="shelf-tooltip">${tooltip}</div>` : ''}
+    </div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function mostraRipiano(code) {
+  const docsInPos = docs.filter(d => d.stato==='attesa' && (d.posizione||'').toUpperCase()===code);
+  if(!docsInPos.length) return;
+  const lista = docsInPos.map(d => `• ${d.nome||'—'} — ${d.codice}`).join('\n');
+  alert(`📦 ${code}\n\n${lista}`);
+}
+
+// ── MODIFICA DOCUMENTO ─────────────────────────────────────────
+let editingOriginalCode = null;
+
+async function cercaPerModifica() {
+  const code = document.getElementById('edit-search-input').value.trim();
+  const wrap = document.getElementById('edit-form-wrap');
+  if(!code) return;
+  wrap.innerHTML = '<div class="alert alert-info"><div class="spinner"></div> جارٍ البحث...</div>';
+  try {
+    const r = await fetch(SCRIPT_URL + `?action=ritiro_get&codice=${encodeURIComponent(code)}`);
+    const d = await r.json();
+    if(!d.ok || !d.doc) {
+      wrap.innerHTML = `<div class="alert alert-err"><i class="ti ti-alert-circle"></i> لم يُعثر على الوثيقة بهذا الرمز.</div>`;
+      return;
+    }
+    renderEditForm(d.doc);
+  } catch(e) {
+    wrap.innerHTML = `<div class="alert alert-err"><i class="ti ti-wifi-off"></i> خطأ في الاتصال.</div>`;
+  }
+}
+
+function renderEditForm(doc) {
+  editingOriginalCode = doc.codice;
+  const wrap = document.getElementById('edit-form-wrap');
+  wrap.innerHTML = `
+    <div class="edit-form">
+      <div class="edit-field">
+        <label>رمز الوثيقة / Codice documento</label>
+        <input type="text" id="ef-codice" dir="ltr" value="${doc.codice}"
+          oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <div class="edit-field">
+        <label>الاسم واللقب / Nome</label>
+        <input type="text" id="ef-nome" value="${doc.nome||''}">
+      </div>
+      <div class="edit-field">
+        <label>الموضع / Posizione (es. RIP-15)</label>
+        <input type="text" id="ef-posizione" dir="ltr" value="${doc.posizione||''}"
+          oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <div class="edit-field">
+        <label>تاريخ الوصول / Data arrivo</label>
+        <input type="date" id="ef-data-arrivo" value="${doc.data_arrivo||''}">
+      </div>
+      <div class="edit-field">
+        <label>الحالة / Stato</label>
+        <select id="ef-stato">
+          <option value="attesa" ${doc.stato==='attesa'?'selected':''}>في الانتظار</option>
+          <option value="consegnato" ${doc.stato==='consegnato'?'selected':''}>تمّ التسليم</option>
+        </select>
+      </div>
+      ${doc.stato==='consegnato' ? `
+      <div class="edit-field">
+        <label>تاريخ التسليم / Data consegna</label>
+        <input type="date" id="ef-data-consegna" value="${doc.data_consegna||''}">
+      </div>` : ''}
+      <div class="edit-actions">
+        <button class="btn btn-outline" style="margin-top:0;" onclick="annullaModifica()">
+          <i class="ti ti-x"></i> إلغاء
+        </button>
+        <button class="btn btn-green" style="margin-top:0;" onclick="salvaModifica()">
+          <i class="ti ti-device-floppy"></i> حفظ التعديلات
+        </button>
+      </div>
+      <div id="edit-save-result"></div>
+    </div>`;
+}
+
+function annullaModifica() {
+  editingOriginalCode = null;
+  document.getElementById('edit-form-wrap').innerHTML = '';
+  document.getElementById('edit-search-input').value = '';
+}
+
+async function salvaModifica() {
+  if(!editingOriginalCode) return;
+  const nuovoCodice = document.getElementById('ef-codice').value.trim();
+  const nome        = document.getElementById('ef-nome').value.trim();
+  const posizione   = document.getElementById('ef-posizione').value.trim();
+  const dataArrivo  = document.getElementById('ef-data-arrivo').value;
+  const stato       = document.getElementById('ef-stato').value;
+  const dataConsEl  = document.getElementById('ef-data-consegna');
+  const dataConsegna= dataConsEl ? dataConsEl.value : '';
+
+  if(!nuovoCodice) { alert('⚠️ رمز الوثيقة مطلوب'); return; }
+
+  const resDiv = document.getElementById('edit-save-result');
+  resDiv.innerHTML = '<div class="alert alert-info"><div class="spinner"></div> جارٍ الحفظ...</div>';
+  try {
+    const r = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      redirect: 'follow',
+      body: JSON.stringify({
+        action:          'ritiro_update',
+        codice_originale: editingOriginalCode,
+        codice:          nuovoCodice,
+        nome:            nome,
+        posizione:       posizione,
+        data_arrivo:     dataArrivo,
+        stato:           stato,
+        data_consegna:   dataConsegna,
+      })
+    });
+    const text = await r.text();
+    let d;
+    try { d = JSON.parse(text); } catch(e) { d = { ok: true }; }
+    if(d.ok || r.ok) {
+      resDiv.innerHTML = `<div class="alert alert-ok"><i class="ti ti-check"></i> تمّ حفظ التعديلات بنجاح! ✅</div>`;
+      setTimeout(() => { annullaModifica(); }, 1800);
+    } else {
+      resDiv.innerHTML = `<div class="alert alert-err"><i class="ti ti-alert-circle"></i> خطأ: ${d.error||'Errore sconosciuto'}</div>`;
+    }
+  } catch(e) {
+    resDiv.innerHTML = `<div class="alert alert-err"><i class="ti ti-wifi-off"></i> خطأ: ${e.message}</div>`;
+  }
 }
 
 // ── CERCA DOCUMENTO (Tab mسح) ─────────────────────────────────
@@ -830,6 +1111,10 @@ async function avviaCamera(id) {
           document.getElementById('doc-input').value = val;
           fermaCamera('doc');
           confermaDocumento();
+        } else if(id === 'edit') {
+          document.getElementById('edit-search-input').value = val;
+          fermaCamera('edit');
+          cercaPerModifica();
         }
       }
     }, 200);
