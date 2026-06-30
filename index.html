@@ -62,6 +62,26 @@
 .doc-item.selected{border-color:var(--red);background:var(--red-light);}
 .btn-delete{background:#dc3545;color:white;}
 .btn-delete:hover{background:#b02a37;}
+
+/* Signature pad */
+.sig-wrap{margin-top:14px;}
+.sig-label{font-size:13px;color:var(--gray);margin-bottom:8px;
+  text-align:center;font-weight:600;}
+.sig-canvas-box{border:2px dashed var(--border);border-radius:var(--radius-sm);
+  background:#fafafa;position:relative;}
+.sig-canvas-box.has-sig{border-color:var(--green);border-style:solid;}
+.sig-canvas{width:100%;height:150px;display:block;touch-action:none;
+  cursor:crosshair;}
+.sig-placeholder{position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);color:var(--lgray);
+  font-size:13px;pointer-events:none;display:flex;
+  flex-direction:column;align-items:center;gap:4px;}
+.sig-actions{display:flex;gap:8px;margin-top:8px;}
+.sig-actions button{flex:1;padding:9px;border:none;border-radius:var(--radius-sm);
+  font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);}
+.btn-sig-clear{background:var(--bg);color:var(--gray);
+  border:1px solid var(--border) !important;}
+.btn-sig-clear:hover{background:#e5e5e5;}
 </style>
 <style>
 :root{
@@ -585,12 +605,38 @@ async function cercaDocumento() {
           <div class="rc-row">
             <span class="rc-lbl">تاريخ التسليم</span>
             <span class="rc-val">${doc.data_consegna||'—'}</span>
-          </div>` : `
-          <button class="btn btn-green" onclick="segnaConsegnato('${doc.codice}')" style="margin-top:12px;">
+          </div>
+          ${doc.firma ? `
+          <div style="margin-top:10px;text-align:center;">
+            <div style="font-size:12px;color:var(--gray);margin-bottom:4px;">التوقيع المسجَّل</div>
+            <img src="${doc.firma}" style="max-width:200px;border:1px solid var(--border);border-radius:8px;background:#fafafa;">
+          </div>` : ''}
+          ` : `
+          <div class="sig-wrap">
+            <div class="sig-label">✍️ توقيع المستلم / Firma del ricevente</div>
+            <div class="sig-canvas-box" id="sig-box-${doc.codice.replace(/[^A-Z0-9]/g,'')}">
+              <canvas class="sig-canvas" id="sig-canvas-${doc.codice.replace(/[^A-Z0-9]/g,'')}"></canvas>
+              <div class="sig-placeholder" id="sig-ph-${doc.codice.replace(/[^A-Z0-9]/g,'')}">
+                <i class="ti ti-signature" style="font-size:24px;"></i>
+                <span>وقّع هنا</span>
+              </div>
+            </div>
+            <div class="sig-actions">
+              <button class="btn-sig-clear" onclick="cancellaFirma('${doc.codice}')">
+                <i class="ti ti-eraser"></i> مسح
+              </button>
+            </div>
+          </div>
+          <button class="btn btn-green" onclick="segnaConsegnato('${doc.codice}')" style="margin-top:10px;">
             <i class="ti ti-check"></i> تمّ التسليم ✅
           </button>`}
         </div>
       </div>`;
+
+    // Inizializza il pad firma se non consegnato
+    if (!isConsegnato) {
+      setTimeout(() => initSignaturePad(doc.codice), 50);
+    }
   } catch(e) {
     // cerca in cache locale
     const doc = docs.find(d=>d.codice===code);
@@ -696,6 +742,11 @@ function resetArchivio() {
 
 // ── SEGNA CONSEGNATO ──────────────────────────────────────────
 async function segnaConsegnato(codice) {
+  const firma = getSignatureData(codice);
+  if (!firma) {
+    alert('⚠️ يرجى التوقيع أولاً قبل تأكيد التسليم.\nFirma obbligatoria prima della consegna.');
+    return;
+  }
   const oggi = new Date().toISOString().split('T')[0];
   try {
     const r = await fetch(SCRIPT_URL, {
@@ -706,6 +757,7 @@ async function segnaConsegnato(codice) {
         codice:        codice,
         data_consegna: oggi,
         stato:         'consegnato',
+        firma:         firma,
       })
     });
     const text = await r.text();
@@ -713,7 +765,7 @@ async function segnaConsegnato(codice) {
     try { d = JSON.parse(text); } catch(e) { d = { ok: true }; }
     if(d.ok || r.ok) {
       document.getElementById('scan-result').innerHTML =
-        `<div class="alert alert-ok"><i class="ti ti-check"></i> تمّ تسجيل التسليم بنجاح! ✅</div>`;
+        `<div class="alert alert-ok"><i class="ti ti-check"></i> تمّ تسجيل التسليم والتوقيع بنجاح! ✅</div>`;
       document.getElementById('scan-input').value='';
     } else {
       alert('خطأ: ' + (d.error||'Errore'));
@@ -863,6 +915,94 @@ async function cancellaSelezionati() {
   document.getElementById('btn-cancella').style.display = 'none';
   await loadDocs();
   alert(`✅ Eliminati ${eliminati} documento/i`);
+}
+
+// ── SIGNATURE PAD ─────────────────────────────────────────────
+let sigPads = {}; // { codiceSafe: { canvas, ctx, drawing, hasSignature } }
+
+function getSafeId(codice) {
+  return codice.replace(/[^A-Z0-9]/g, '');
+}
+
+function initSignaturePad(codice) {
+  const id = getSafeId(codice);
+  const canvas = document.getElementById('sig-canvas-' + id);
+  if (!canvas) return;
+  const box = document.getElementById('sig-box-' + id);
+  const ph  = document.getElementById('sig-ph-' + id);
+
+  // Imposta dimensioni reali del canvas (per evitare blur)
+  const rect = canvas.getBoundingClientRect();
+  const dpr  = window.devicePixelRatio || 1;
+  canvas.width  = rect.width  * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth   = 2.2;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+
+  const state = { canvas, ctx, drawing: false, hasSignature: false, lastX: 0, lastY: 0 };
+  sigPads[id] = state;
+
+  function getPos(e) {
+    const r = canvas.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return { x: t.clientX - r.left, y: t.clientY - r.top };
+  }
+
+  function start(e) {
+    e.preventDefault();
+    state.drawing = true;
+    const p = getPos(e);
+    state.lastX = p.x; state.lastY = p.y;
+    if (!state.hasSignature) {
+      state.hasSignature = true;
+      if (ph) ph.style.display = 'none';
+      if (box) box.classList.add('has-sig');
+    }
+  }
+  function move(e) {
+    if (!state.drawing) return;
+    e.preventDefault();
+    const p = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(state.lastX, state.lastY);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    state.lastX = p.x; state.lastY = p.y;
+  }
+  function end(e) {
+    state.drawing = false;
+  }
+
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', move);
+  canvas.addEventListener('mouseup', end);
+  canvas.addEventListener('mouseleave', end);
+  canvas.addEventListener('touchstart', start, { passive:false });
+  canvas.addEventListener('touchmove', move, { passive:false });
+  canvas.addEventListener('touchend', end);
+}
+
+function cancellaFirma(codice) {
+  const id = getSafeId(codice);
+  const state = sigPads[id];
+  if (!state) return;
+  state.ctx.clearRect(0, 0, state.canvas.width, state.canvas.height);
+  state.hasSignature = false;
+  const ph  = document.getElementById('sig-ph-' + id);
+  const box = document.getElementById('sig-box-' + id);
+  if (ph)  ph.style.display = '';
+  if (box) box.classList.remove('has-sig');
+}
+
+function getSignatureData(codice) {
+  const id = getSafeId(codice);
+  const state = sigPads[id];
+  if (!state || !state.hasSignature) return null;
+  return state.canvas.toDataURL('image/png');
 }
 
 // ── SERVICE WORKER ────────────────────────────────────────────
